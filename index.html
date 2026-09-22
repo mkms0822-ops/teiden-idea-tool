@@ -94,10 +94,37 @@ html.dk .toast{background:#2a3947}
 
 @media (max-width:480px){ ol.tips li{font-size:.93rem} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.menu-btn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:14px;z-index:60;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:19px;cursor:pointer;display:grid;place-items:center;box-shadow:0 3px 12px rgba(0,0,0,.16)}
+.menu-btn:hover{border-color:var(--accent)}
+.menu-btn:focus-visible,.mclose:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ov{position:fixed;inset:0;z-index:90;background:rgba(3,8,13,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none}
+.ov.open{display:block}
+.drawer{position:absolute;top:0;right:0;height:100%;width:min(92vw,400px);background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:-12px 0 40px rgba(0,0,0,.3)}
+.dhead{flex:none;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 12px;border-bottom:1px solid var(--line);font-size:1.05rem;font-weight:800}
+.mclose{margin-left:auto;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-size:16px;cursor:pointer}
+.dbody{flex:1;overflow-y:auto;padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 24px)}
+.mlabel{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:10px 4px 6px}
+.mitem{display:flex;gap:12px;align-items:flex-start;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:8px;background:var(--surface)}
+.mitem:hover{border-color:var(--accent);background:var(--accent-soft)}
+.mitem .mi{flex:none;width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;font-size:18px}
+.mitem .mt{flex:1;min-width:0}
+.mitem .mn{font-weight:700;font-size:.96rem;display:block}
+.mitem .md{font-size:.78rem;color:var(--muted);line-height:1.5;display:block}
+.modal{position:fixed;inset:0;z-index:95;background:rgba(3,8,13,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px}
+.modal.open{display:flex}
+.mcard{background:var(--surface);border:1px solid var(--line);border-radius:15px;max-width:640px;width:100%;max-height:86vh;overflow-y:auto;padding:22px 22px calc(env(safe-area-inset-bottom,0px) + 22px)}
+.mcard h2{margin:0 0 4px;font-size:1.2rem}
+.mcard h3{font-size:.98rem;margin:18px 0 4px}
+.mcard p{font-size:.9rem;margin:0 0 8px;line-height:1.75}
+.mcard .upd{color:var(--muted);font-size:.78rem;margin-bottom:14px}
+.mcard a{color:var(--accent)}
+.mcard .close-row{text-align:right;margin-top:16px}
+.mcard .close-row button{font:inherit;font-weight:700;cursor:pointer;background:var(--accent);color:var(--accent-ink);border:none;border-radius:9px;padding:9px 18px}
 @media print{ .controls,.search,.nav{display:none} section.cat{break-inside:avoid} }
 </style>
 </head>
 <body>
+<button type="button" class="menu-btn" id="menuBtn" onclick="openMenu()" aria-label="メニュー" title="メニュー">☰</button>
 <div class="controls">
   <button type="button" class="ctrl" id="themeBtn" onclick="toggleTheme()" aria-label="ダーク／ライト切替" title="ダーク／ライト切替">🌙</button>
   <button type="button" class="ctrl" id="shareBtn" onclick="sharePage()" aria-label="共有" title="共有">🔗</button>
@@ -108,6 +135,7 @@ html.dk .toast{background:#2a3947}
     <h1>停電対策 知恵袋ポータル</h1>
     <p class="lede">寝る・食事・食料・情報・入浴・トイレ・スマホ・電源など、暮らしのカテゴリー別に停電時の工夫を集めました。</p>
     <p class="count">全140項目・14カテゴリー／キーワード検索できます</p>
+    <p class="count">提供：DWA防災情報センター</p>
   </header>
 
   <div class="safety" role="note">
@@ -125,11 +153,49 @@ html.dk .toast{background:#2a3947}
 
   <footer>
     <p>本ページは停電・災害への備えに関する一般的な工夫をまとめたものです。<b>安全に関わる判断は、消防・自治体・電力会社・製品メーカーの公式情報を優先</b>してください。医療機器の利用や持病のある方は、事前に主治医・関係機関にご相談ください。</p>
-    <p>作成：災害後方支援の一環として。内容は状況により見直してください。</p>
+    <p><b>提供・作成：DWA防災情報センター</b>（<a href="https://bousai0111.info">bousai0111.info</a>）　／　<a href="#" onclick="openPP();return false;">プライバシーポリシー</a></p>
   </footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<div class="ov" id="menuOv" onclick="if(event.target===this)closeMenu()">
+  <nav class="drawer" aria-label="ツールメニュー">
+    <div class="dhead"><span>🧰</span><span>ツールメニュー</span><button class="mclose" onclick="closeMenu()" aria-label="閉じる">✕</button></div>
+    <div class="dbody">
+      <div class="mlabel">DWA防災情報センターのツール</div>
+      <a class="mitem" href="https://bousai0111.info/Manual.html"><span class="mi">🚨</span><span class="mt"><span class="mn">緊急対応マニュアル</span><span class="md">様々な災害・事件・事故の対応方法をテキストと音声でサポート</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/#sos"><span class="mi">📢</span><span class="mt"><span class="mn">SOSビーコン</span><span class="md">音と光で現在位置を救助隊に知らせる</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/#near"><span class="mi">📍</span><span class="mt"><span class="mn">近くを探す</span></span></a>
+      <a class="mitem" href="https://bousai0111.info"><span class="mi">🏠</span><span class="mt"><span class="mn">DWA防災情報センター</span><span class="md">トップページ</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/index.html#saigai25"><span class="mi">🌀</span><span class="mt"><span class="mn">台風25号 災害後方支援</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/saiken-guide.html"><span class="mi">🔧</span><span class="mt"><span class="mn">生活再建ガイド</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/index.html#volunteer"><span class="mi">🤝</span><span class="mt"><span class="mn">ボランティア後方支援ツール</span></span></a>
+      <a class="mitem" href="https://bousai0111.info/guide.html"><span class="mi">📖</span><span class="mt"><span class="mn">防災ガイド</span></span></a>
+      <div class="mlabel">その他</div>
+      <a class="mitem" href="#" onclick="openPP();return false;"><span class="mi">🔒</span><span class="mt"><span class="mn">プライバシーポリシー</span></span></a>
+    </div>
+  </nav>
+</div>
+<div class="modal" id="ppModal" onclick="if(event.target===this)closePP()">
+  <div class="mcard" role="dialog" aria-modal="true" aria-label="プライバシーポリシー">
+    <h2>プライバシーポリシー</h2>
+    <p class="upd">最終更新：2026年9月／提供：DWA防災情報センター</p>
+    <p>DWA防災情報センター（以下「当センター」）が提供する本ツール「停電対策 知恵袋ポータル」における情報の取り扱いについて、以下のとおり定めます。</p>
+    <h3>1. 収集する情報</h3>
+    <p>本ツールは、氏名・住所・連絡先などの個人情報を収集・送信しません。検索キーワード等の入力内容は、お使いの端末内で処理され、外部に送信されません。</p>
+    <h3>2. 端末内への保存（ローカルストレージ）</h3>
+    <p>表示テーマ（ダーク／ライト）の設定のみ、次回以降も保持するためにお使いのブラウザ内に保存します。この情報が当センターや第三者へ送信されることはありません。ブラウザの設定からいつでも削除できます。</p>
+    <h3>3. Cookie・アクセス解析</h3>
+    <p>本ツール自体は、追跡目的のCookieを使用しません。DWA防災情報センター全体でアクセス解析等を行う場合は、サイト全体の方針に従います。</p>
+    <h3>4. 外部サービス・外部リンク</h3>
+    <p>本ツールは表示のためWebフォント（Google Fonts）を読み込みます。その際、技術的情報（IPアドレス等）が提供元へ送信される場合があります。メニューから外部のページ・ツールへ移動した場合、移動先での取り扱いは各提供元の方針によります。</p>
+    <h3>5. 免責</h3>
+    <p>本ツールは防災・減災に関する一般的な情報提供を目的としています。安全に関わる最終的な判断は、消防・自治体・電力会社等の公式情報を優先してください。</p>
+    <h3>6. 改定・お問い合わせ</h3>
+    <p>本ポリシーは予告なく改定されることがあります。お問い合わせは DWA防災情報センター（https://bousai0111.info）までお願いします。</p>
+    <div class="close-row"><button onclick="closePP()">閉じる</button></div>
+  </div>
+</div>
 <script>
 const DATA=[{"id": "power", "icon": "⚡", "name": "電源・充電", "tips": [{"t": "モバイルバッテリーは日頃から満充電に。大容量（20000mAh級）ならスマホを数回充電できる。", "w": 0}, {"t": "車のシガーソケット／USBやAC電源は非常用電源になる。ただしエンジンは屋外・換気で（排気ガスに注意）。", "w": 1}, {"t": "ポータブル電源があれば家電も動かせる。容量（Wh）と使いたい家電のW数を事前に確認。", "w": 0}, {"t": "乾電池式充電器＋予備の乾電池を常備。長引いても電池交換で使い続けられる。", "w": 0}, {"t": "ノートPCの大きなバッテリーからスマホへ給電できる（USB出力）。", "w": 0}, {"t": "手回し充電は補助と割り切る。数分回して数％程度なので緊急連絡用に。", "w": 0}, {"t": "使わない機器の電源はこまめに切り、必要な機器へ電力を集中させる。", "w": 0}, {"t": "「昼ためて夜使う」。日中に太陽光や車で充電し、夜の照明・情報に回す。", "w": 0}, {"t": "ソーラーチャージャーは晴天時の日中に。曇天では出力が大きく落ちる。", "w": 0}, {"t": "充電の優先順位を決める：スマホ→ラジオ／ライト→その他。家族分をまとめて管理。", "w": 0}]}, {"id": "phone", "icon": "📱", "name": "スマホ・通信", "tips": [{"t": "省電力モードをオンに。画面を暗くし、使わないアプリは終了する。", "w": 0}, {"t": "圏外や電波が不安定な場所では機内モードを活用。電波を探し続けると急速に消耗する。", "w": 0}, {"t": "連絡は通話より通信量の少ないメッセージ（SMS／チャット）で。混雑時もつながりやすい。", "w": 0}, {"t": "災害用伝言板（web171）などで安否を共有する。", "w": 0}, {"t": "家族の集合場所・連絡ルールを事前に決めておく（電気が無くても迷わない）。", "w": 0}, {"t": "避難所・連絡先・地図はスクリーンショットで保存し、オフラインで見られるように。", "w": 0}, {"t": "位置情報・Bluetooth・Wi‑Fi探索はオフにして消費を抑える。", "w": 0}, {"t": "公衆電話の場所を把握。災害時は通信規制の影響を受けにくい。小銭・テレホンカードも。", "w": 0}, {"t": "災害時無料Wi‑Fi「00000JAPAN」が開放されることがある。", "w": 0}, {"t": "スマホは温度に弱い。夏の高温・冬の冷えすぎでバッテリーが弱る。極端な温度を避ける。", "w": 0}]}, {"id": "info", "icon": "📻", "name": "情報収集", "tips": [{"t": "電池式・手回しラジオを1台。停電・通信途絶でも情報が得られる最後の砦。", "w": 0}, {"t": "NHKと地元局の周波数をメモしてラジオ本体に貼っておく。", "w": 0}, {"t": "停電・復旧情報は電力会社の停電情報サイト／SNSで確認（電池残量と相談しつつ）。", "w": 0}, {"t": "気象・河川・避難情報は自治体の防災アプリ／メール、通電時はテレビのdボタンで。", "w": 0}, {"t": "デマに注意。発信元が公式か、日時はいつかを確認し、複数の信頼できる情報源で裏取り。", "w": 0}, {"t": "車のカーラジオも情報源。充電しながら聞ける（換気に注意）。", "w": 1}, {"t": "近所・自治会の声かけも情報網。高齢者宅の安否確認も兼ねる。", "w": 0}, {"t": "停電が自宅だけか地域全体かを切り分ける（ブレーカー／契約か、電力会社情報か）。", "w": 0}, {"t": "復旧見込み時間がわかると、食料・充電・行動の計画が立てやすい。", "w": 0}, {"t": "情報を得る時間を決め「ながら受信」をやめると電池が長持ちする。", "w": 0}]}, {"id": "light", "icon": "💡", "name": "あかり・照明", "tips": [{"t": "LEDランタン・懐中電灯・ヘッドライトを部屋ごとに。両手が空くヘッドライトが便利。", "w": 0}, {"t": "ろうそくは転倒・引火の火災リスクが高い。就寝時や子ども・ペットのそばでは使わない。", "w": 1}, {"t": "懐中電灯に水入りペットボトルやレジ袋をかぶせると光が拡散し、部屋がほんのり明るくなる。", "w": 0}, {"t": "ランタンは天井や高い位置に吊るすと広く照らせる。", "w": 0}, {"t": "スマホのライトは非常用に温存する。常用すると電池を消耗する。", "w": 0}, {"t": "予備電池はライトと同じ場所に、種類・本数をまとめて保管。", "w": 0}, {"t": "玄関・階段・トイレへの動線に明かりを確保し、暗所での転倒を防ぐ。", "w": 0}, {"t": "ソーラーランタンは昼に窓際で充電しておく。", "w": 0}, {"t": "暗くなる前に、懐中電灯の位置を家族で共有しておく。", "w": 0}, {"t": "蓄光テープ・反射材を段差やスイッチに貼ると、暗闇でも位置がわかる。", "w": 0}]}, {"id": "sleep", "icon": "😴", "name": "寝る・睡眠", "tips": [{"t": "冬は「着て寝る」。一枚多く重ね、湯たんぽや温水ペットボトルを布団へ（低温やけどに注意）。", "w": 0}, {"t": "寝袋・毛布を重ね、床の冷えを断つためマットや段ボールを敷く。", "w": 0}, {"t": "夏は熱がこもらない場所で。窓を対角に開け風の通り道をつくる。", "w": 0}, {"t": "凍らせたペットボトルをタオルで巻いて枕元に置くと寝苦しさが和らぐ。", "w": 0}, {"t": "停電中は防犯にも注意。戸締まりを確認し、貴重品は手元に。", "w": 0}, {"t": "就寝前に火の元・暖房を必ず消す（CO中毒・火災予防）。", "w": 1}, {"t": "枕元にライト・スマホ・靴／スリッパ・ホイッスルをまとめて置く。", "w": 0}, {"t": "家族はできるだけ同じ部屋で。体温を分け合え、安否確認もしやすい。", "w": 0}, {"t": "新聞紙を服と毛布の間に挟むと断熱材代わりになり暖かい。", "w": 0}, {"t": "睡眠で体力を守ることが、停電生活を乗り切る土台になる。", "w": 0}]}, {"id": "cook", "icon": "🍳", "name": "食事・調理", "tips": [{"t": "カセットコンロ＋ボンベが調理の主役。ボンベは1人1週間で約6本が目安。", "w": 0}, {"t": "ボンベは直射日光・高温を避けて保管。コンロの周りに燃えるものを置かない。", "w": 1}, {"t": "ポリ袋湯せん（パッククッキング）：高密度ポリ袋に食材を入れ湯せん。水も洗い物も節約。", "w": 0}, {"t": "一つの鍋の湯で複数のポリ袋を同時調理でき、燃料も節約できる。", "w": 0}, {"t": "火を使わず食べられるもの（缶詰・レトルト・パン・シリアル）から消費する。", "w": 0}, {"t": "温かい汁物・飲み物は体温と気力を保つ。少量の湯で作れるスープを常備。", "w": 0}, {"t": "まな板にラップを敷けば洗わずに済み、水を節約できる。", "w": 0}, {"t": "缶詰はそのまま、または湯せんで温める。", "w": 0}, {"t": "生もの・傷みやすい食材から先に、必ず加熱して食べる。", "w": 0}, {"t": "使い捨て食器・割り箸・ラップで、貴重な水を洗い物に使わずに済ませる。", "w": 0}]}, {"id": "food", "icon": "🥫", "name": "食料・備蓄", "tips": [{"t": "ローリングストック：普段の食品を少し多めに買い、食べた分を補充して常に備蓄。", "w": 0}, {"t": "最低3日、できれば1週間分を家族の人数分そろえる。", "w": 0}, {"t": "加熱不要でそのまま食べられる非常食も一定量確保する。", "w": 0}, {"t": "賞味期限を定期チェックし、近いものから食べて入れ替える。", "w": 0}, {"t": "主食＋たんぱく質（缶詰）＋野菜（ジュース／フリーズドライ）で栄養の偏りを防ぐ。", "w": 0}, {"t": "食べ慣れた好きな味を備える。ストレス下でも食べやすい。", "w": 0}, {"t": "チョコ・ようかんなど高カロリーの嗜好品は、手軽なエネルギー源＆気分転換に。", "w": 0}, {"t": "液体ミルク・離乳食・やわらか食など、家族に合わせた備蓄を。", "w": 0}, {"t": "アレルギー対応食・常備薬・持病用の食事も忘れずに。", "w": 0}, {"t": "保管場所を家族で共有。分散して置くと被災時のリスクも分散できる。", "w": 0}]}, {"id": "water", "icon": "💧", "name": "水・飲料", "tips": [{"t": "飲料水は1人1日3Lが目安。3日〜1週間分を備蓄。", "w": 0}, {"t": "停電＝断水ではないが、マンションはポンプ停止で断水することがある。早めに汲み置きを。", "w": 0}, {"t": "停電直後に浴槽・鍋・ボトルへ水を貯めておく（生活用水）。", "w": 0}, {"t": "給水拠点の場所を自治体サイトで確認。運搬用のポリタンク・給水袋を用意。", "w": 0}, {"t": "飲用と生活用（手洗い・トイレ）の水を分けて管理し、無駄遣いを防ぐ。", "w": 0}, {"t": "水は直射日光を避けて保管。開封後は早めに使い切る。", "w": 0}, {"t": "ウォーターサーバーのボトルや製氷機の氷も貴重な水源。", "w": 0}, {"t": "節水：食器はラップ、手はウェットティッシュ／アルコールで代用。", "w": 0}, {"t": "段ボール箱にポリ袋を広げて水を注げば、即席の給水タンクになる。", "w": 0}, {"t": "赤ちゃん・高齢者・体調不良者は脱水しやすい。水分補給を優先する。", "w": 0}]}, {"id": "bath", "icon": "🛁", "name": "入浴・衛生", "tips": [{"t": "入浴できない時はボディシートや蒸しタオルで。首・脇・股関節など汗をかく部位を重点的に。", "w": 0}, {"t": "ドライシャンプー／水のいらないシャンプーで頭皮のべたつき・においを軽減。", "w": 0}, {"t": "カセットコンロで湯を沸かし、洗面器で「かけ湯」だけでもさっぱりする。", "w": 0}, {"t": "手指衛生はアルコール消毒・ウェットティッシュで。食事前・トイレ後は特に丁寧に。", "w": 0}, {"t": "口腔ケアは少量の水や歯みがきシートで。誤嚥性肺炎の予防にも重要。", "w": 0}, {"t": "汗をかいたら着替える。清潔な衣類は感染症・皮膚トラブルを防ぐ。", "w": 0}, {"t": "生理用品、乳幼児のおむつ・おしりふきは多めに備蓄。", "w": 0}, {"t": "ゴミは分別し、ふた付き容器やポリ袋で密閉してにおい・衛生対策を。", "w": 0}, {"t": "マスク・消毒液で、避難生活での感染症（胃腸炎・かぜ）を防ぐ。", "w": 0}, {"t": "爪を切り手を清潔に保つなど、小さな衛生習慣が体調を守る。", "w": 0}]}, {"id": "toilet", "icon": "🚽", "name": "トイレ", "tips": [{"t": "携帯トイレ・簡易トイレを備蓄（1人1日5回×日数が目安）。停電・断水で真っ先に困る。", "w": 0}, {"t": "断水時はむやみに流さない。マンションは配管破損の恐れがあり、流してよいか管理者に確認。", "w": 1}, {"t": "便器にポリ袋を二重にかぶせ、凝固剤や新聞紙・ペットシートで固めて処理する。", "w": 0}, {"t": "使用後は袋の口をしっかり縛り、ふた付き容器／防臭袋でにおいを封じる。", "w": 0}, {"t": "消臭・防臭袋、凝固剤、トイレットペーパーを多めに備える。", "w": 0}, {"t": "バケツ流しは、配管の安全が確認できる戸建てなどに限る。", "w": 0}, {"t": "手指消毒（アルコール／ウェットティッシュ）をトイレのそばに常備。", "w": 0}, {"t": "夜間・高齢者・子ども用に、ライトと動線を確保（暗所での転倒防止）。", "w": 0}, {"t": "排せつを我慢しない。水分の控えすぎはエコノミークラス症候群や膀胱炎の原因に。", "w": 0}, {"t": "使用済み携帯トイレの保管場所（直射日光を避けた屋外など）を決めておく。", "w": 0}]}, {"id": "fridge", "icon": "❄️", "name": "冷蔵庫・食品保存", "tips": [{"t": "停電したら扉を開けない。冷蔵は2〜3時間、冷凍は満杯で約48時間・半分で約24時間が目安。", "w": 0}, {"t": "開ける時はまとめて手早く。取り出すものを決めてから開ける。", "w": 0}, {"t": "保冷剤・凍った食品・氷をクーラーボックスへ移して延命する。", "w": 0}, {"t": "日頃から冷凍庫の隙間を凍らせたペットボトルで埋めると保冷力が上がる。", "w": 0}, {"t": "傷みやすい要冷蔵品（肉・魚・乳製品）から先に、加熱して食べる。", "w": 0}, {"t": "一度解けた冷凍品の再冷凍は避ける（品質・衛生の低下）。", "w": 0}, {"t": "常温で溶けた乳製品、においや変色があるものは処分する。", "w": 0}, {"t": "迷ったら食べない。食中毒のリスクを冒すより処分を。", "w": 1}, {"t": "クーラーボックスは日陰・涼しい場所に置き、開閉を最小限に。", "w": 0}, {"t": "復旧後は冷蔵庫をしばらく待ってから通電し、庫内を確認してから食品を戻す。", "w": 0}]}, {"id": "safety", "icon": "🔥", "name": "安全・火災予防", "tips": [{"t": "発電機・炭火・ガス機器を室内で使わない。一酸化炭素中毒で死亡の危険。必ず屋外・換気で。", "w": 1}, {"t": "一酸化炭素は無色無臭。頭痛・吐き気・めまいを感じたらすぐ外の空気を吸い、換気する。", "w": 1}, {"t": "長期停電や避難で家を空ける時はブレーカーを落とし、復旧時の「通電火災」を防ぐ。", "w": 1}, {"t": "復旧後は、家電の破損・こぼれた可燃物・配線の異常がないか確認してから通電する。", "w": 1}, {"t": "暖房・ストーブの近くに燃えやすい物を置かない。就寝時・外出時は必ず消す。", "w": 1}, {"t": "ろうそくは極力使わない。使うなら不燃の受け皿・安定した場所で、その場を離れない。", "w": 1}, {"t": "消火器や水を手の届く所に置き、初期消火に備える。", "w": 0}, {"t": "停電時のエレベーターは閉じ込めの恐れ。階段を使う。", "w": 0}, {"t": "在宅酸素・人工呼吸器など医療機器の利用者は、非常用電源と連絡先を必ず確保。", "w": 1}, {"t": "ガス臭がしたら火気厳禁・換気・元栓を閉め、電気スイッチも触らない（火花で引火）。", "w": 1}]}, {"id": "temp", "icon": "🌡️", "name": "暑さ・寒さ対策", "tips": [{"t": "【夏】窓を対角に開け風の通り道を。すだれ・カーテンで直射日光を遮る。", "w": 0}, {"t": "【夏】濡れタオル＋うちわで気化熱を利用。首・脇・脚の付け根を冷やすと効率的。", "w": 0}, {"t": "【夏】乾電池式・充電式の扇風機やハンディファンが役立つ。", "w": 0}, {"t": "【夏】熱中症に注意。こまめな水分＋塩分をとり、無理せず涼しい場所へ。", "w": 0}, {"t": "【夏】冷房が使えない日中は、涼しい公共施設・避難所への一時避難も選択肢。", "w": 0}, {"t": "【冬】重ね着＋「3つの首（首・手首・足首）」の保温で体感が大きく変わる。", "w": 0}, {"t": "【冬】湯たんぽ・カイロ・毛布で局所を温め、ニット帽で頭からの放熱を防ぐ。", "w": 0}, {"t": "【冬】石油／カセットガスストーブは換気必須、就寝時は必ず消火する。", "w": 1}, {"t": "【冬】窓に断熱シート、床にマットを敷いて底冷えを防ぐ。", "w": 0}, {"t": "【共通】体温調整が難しい高齢者・乳幼児は特に注意し、こまめに様子を確認する。", "w": 0}]}, {"id": "care", "icon": "👶", "name": "赤ちゃん・高齢者・ペット", "tips": [{"t": "【乳児】常温で飲める液体ミルク＋使い捨て哺乳ボトルなら、湯が沸かせなくても授乳できる。", "w": 0}, {"t": "【乳児】おむつ・おしりふき・離乳食を多めに。暗所用に授乳・おむつ替えのライトを確保。", "w": 0}, {"t": "【子ども】お気に入りのおもちゃ・絵本や声かけで不安を和らげ、明かりで暗闇の怖さを減らす。", "w": 0}, {"t": "【高齢者】常備薬・お薬手帳の写し・予備の眼鏡や補聴器の電池を備える。", "w": 0}, {"t": "【高齢者】室温変化に弱い。夏の熱中症・冬の低体温に特に注意し、水分と保温を。", "w": 0}, {"t": "【医療】在宅医療機器の利用者は非常用電源・予備バッテリーと連絡先を確保する。", "w": 1}, {"t": "【共通】要配慮者の避難は早めに。停電で暗くなる前に安全な場所へ。", "w": 0}, {"t": "【ペット】水・フード・トイレ用品を最低数日分。ケージ／キャリーに慣らしておく。", "w": 0}, {"t": "【ペット】夏は熱中症、冬は冷えに注意。人と同じく温度管理を。", "w": 0}, {"t": "【共通】ご近所と声をかけ合い、要配慮者の安否を地域で見守る。", "w": 0}]}];
 const list=document.getElementById('list');
@@ -178,6 +244,11 @@ function sharePage(){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>showToast('URLをコピーしました')).catch(()=>showToast(url));return;}
   showToast(url);
 }
+function openMenu(){document.getElementById('menuOv').classList.add('open');document.body.style.overflow='hidden';}
+function closeMenu(){document.getElementById('menuOv').classList.remove('open');document.body.style.overflow='';}
+function openPP(){closeMenu();document.getElementById('ppModal').classList.add('open');document.body.style.overflow='hidden';}
+function closePP(){document.getElementById('ppModal').classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closePP();closeMenu();}});
 </script>
 </body>
 </html>
