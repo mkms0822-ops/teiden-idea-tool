@@ -344,6 +344,7 @@ function sharePage(){
 /* ===== 防災アイデア・被災地応援掲示板 ===== */
 /* ▼▼ 管理者設定：GASウェブアプリのURLを貼り付けてください ▼▼ */
 const BOARD_API = 'https://script.google.com/macros/s/AKfycbzM-fw1VcQ0Xz1GmdZ7XySoIRBwSICjoChlY-GY-Z3rRL6WHrj6940dRPJBKaesC03j/exec';
+const BOARD_CSV = ''; /* ← スプレッドシートの「ウェブに公開(CSV)」URLをここに貼ると、掲示板の読み込みが確実になります */
 /* ▲▲ 例）const BOARD_API = 'https://script.google.com/macros/s/xxxxx/exec'; ▲▲ */
 
 const ICONS_M = ['👨','🧔','👨‍🦰','👨‍🦱','👨‍🦳','👨‍🦲','👴','👨‍💼','👨‍🌾','👨‍🚒'];
@@ -463,6 +464,7 @@ function renderPosts_(posts){
 function loadPosts(){
   var host=document.getElementById('bPosts'), empty=document.getElementById('bEmpty');
   if(!host) return;
+  if(BOARD_CSV){ loadPostsCSV_(); return; }
   if(!BOARD_API){ empty.hidden=false; empty.textContent='掲示板は準備中です。'; return; }
   // まず fetch(CORS) で取得。失敗（リダイレクト403等）したら JSONP に自動フォールバック
   fetch(BOARD_API+(BOARD_API.indexOf('?')>=0?'&':'?')+'action=list&t='+Date.now(), {method:'GET'})
@@ -483,6 +485,44 @@ function loadPostsJSONP_(){
   sc.onerror=function(){ try{delete window[cb];}catch(e){} if(sc.parentNode)sc.parentNode.removeChild(sc); if(empty){ empty.hidden=false; empty.textContent='読み込みに失敗しました。時間をおいて更新してください。'; } };
   sc.src=BOARD_API+(BOARD_API.indexOf('?')>=0?'&':'?')+'action=list&callback='+cb+'&t='+Date.now();
   document.body.appendChild(sc);
+}
+
+function loadPostsCSV_(){
+  var empty=document.getElementById('bEmpty');
+  fetch(BOARD_CSV+(BOARD_CSV.indexOf('?')>=0?'&':'?')+'t='+Date.now())
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(function(txt){
+      var rows=parseCSV_(txt);
+      if(rows.length && /icon|アイコン/i.test(String(rows[0][0]||''))) rows.shift();
+      var posts=rows.map(function(c){
+        return {icon:(c[0]||'').trim(), name:(c[1]||'').trim(), color:(c[2]||'').trim(), idea:(c[3]||'').trim(), message:(c[4]||'').trim(), time:(c[5]||'').trim()};
+      }).filter(function(p){ return p.name||p.idea||p.message; });
+      posts.reverse();
+      renderPosts_(posts);
+    })
+    .catch(function(){ if(empty){ empty.hidden=false; empty.textContent='読み込みに失敗しました。公開URL(CSV)の設定をご確認ください。'; } });
+}
+
+function parseCSV_(text){
+  var NL=String.fromCharCode(10), CR=String.fromCharCode(13), QT=String.fromCharCode(34);
+  var rows=[], row=[], cur='', q=false, i=0, c;
+  text=String(text);
+  while(i<text.length){
+    c=text.charAt(i);
+    if(q){
+      if(c===QT){ if(text.charAt(i+1)===QT){ cur+=QT; i++; } else { q=false; } }
+      else { cur+=c; }
+    } else {
+      if(c===QT){ q=true; }
+      else if(c===','){ row.push(cur); cur=''; }
+      else if(c===NL){ row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if(c===CR){ /* skip */ }
+      else { cur+=c; }
+    }
+    i++;
+  }
+  if(cur!=='' || row.length){ row.push(cur); rows.push(row); }
+  return rows;
 }
 loadPosts();
 
