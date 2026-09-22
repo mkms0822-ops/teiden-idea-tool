@@ -443,30 +443,44 @@ function buildTicker(posts){
 }
 var _tkRz; window.addEventListener('resize', function(){ clearTimeout(_tkRz); _tkRz=setTimeout(function(){ buildTicker(_tickerPosts); }, 300); });
 
+function renderPosts_(posts){
+  var host=document.getElementById('bPosts'), empty=document.getElementById('bEmpty');
+  if(!host) return;
+  buildTicker(posts);
+  if(!posts.length){ host.innerHTML=''; empty.hidden=false; empty.textContent='まだ公開された投稿はありません。'; return; }
+  empty.hidden=true;
+  host.innerHTML=posts.map(function(p){
+    var col=/^#[0-9a-fA-F]{6}$/.test(p.color||'')?p.color:'#6b7785';
+    return '<div class="post" style="border-left-color:'+col+'">'+
+      '<div class="post-h"><span class="post-ic" style="background:'+col+'22">'+esc(p.icon||'🙂')+'</span>'+
+      '<span class="post-name">'+esc(p.name||'匿名')+'</span><span class="post-time">'+esc(p.time||'')+'</span></div>'+
+      (p.idea?'<div class="post-idea">'+esc(p.idea)+'</div>':'')+
+      (p.message?'<div class="post-msg">'+esc(p.message)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
 function loadPosts(){
   var host=document.getElementById('bPosts'), empty=document.getElementById('bEmpty');
   if(!host) return;
   if(!BOARD_API){ empty.hidden=false; empty.textContent='掲示板は準備中です。'; return; }
+  // まず fetch(CORS) で取得。失敗（リダイレクト403等）したら JSONP に自動フォールバック
+  fetch(BOARD_API+(BOARD_API.indexOf('?')>=0?'&':'?')+'action=list&t='+Date.now(), {method:'GET'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){ renderPosts_((data&&data.posts)||[]); })
+    .catch(function(){ loadPostsJSONP_(); });
+}
+
+function loadPostsJSONP_(){
+  var empty=document.getElementById('bEmpty');
   var cb='__bcb'+Date.now();
   var sc=document.createElement('script');
   window[cb]=function(data){
     try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
     if(sc.parentNode) sc.parentNode.removeChild(sc);
-    var posts=(data&&data.posts)||[];
-    buildTicker(posts);
-    if(!posts.length){ host.innerHTML=''; empty.hidden=false; empty.textContent='まだ公開された投稿はありません。'; return; }
-    empty.hidden=true;
-    host.innerHTML=posts.map(function(p){
-      var col=/^#[0-9a-fA-F]{6}$/.test(p.color||'')?p.color:'#6b7785';
-      return '<div class="post" style="border-left-color:'+col+'">'+
-        '<div class="post-h"><span class="post-ic" style="background:'+col+'22">'+esc(p.icon||'🙂')+'</span>'+
-        '<span class="post-name">'+esc(p.name||'匿名')+'</span><span class="post-time">'+esc(p.time||'')+'</span></div>'+
-        (p.idea?'<div class="post-idea">'+esc(p.idea)+'</div>':'')+
-        (p.message?'<div class="post-msg">'+esc(p.message)+'</div>':'')+
-      '</div>';
-    }).join('');
+    renderPosts_((data&&data.posts)||[]);
   };
-  sc.onerror=function(){ try{delete window[cb];}catch(e){} if(sc.parentNode)sc.parentNode.removeChild(sc); empty.hidden=false; empty.textContent='読み込みに失敗しました。時間をおいて更新してください。'; };
+  sc.onerror=function(){ try{delete window[cb];}catch(e){} if(sc.parentNode)sc.parentNode.removeChild(sc); if(empty){ empty.hidden=false; empty.textContent='読み込みに失敗しました。時間をおいて更新してください。'; } };
   sc.src=BOARD_API+(BOARD_API.indexOf('?')>=0?'&':'?')+'action=list&callback='+cb+'&t='+Date.now();
   document.body.appendChild(sc);
 }
