@@ -384,13 +384,29 @@ function submitPost(){
   if(!idea && !message){ show('err','防災アイデアか応援メッセージのどちらかを入力してください。'); return; }
   if(!BOARD_API){ show('err','掲示板は準備中です（管理者へ：スクリプト内の BOARD_API にGASのURLを設定してください）。'); return; }
   var btn=document.getElementById('bSubmit'); btn.disabled=true; btn.textContent='送信中…';
-  var body=new URLSearchParams({name:name||'匿名', icon:selIcon, color:selColor, idea:idea, message:message});
-  fetch(BOARD_API,{method:'POST',mode:'no-cors',body:body}).then(function(){
+
+  // GASへはフォーム+隠しiframeでPOST（CORSの影響を受けず最も確実）
+  var ifr=document.getElementById('bSink');
+  if(!ifr){ ifr=document.createElement('iframe'); ifr.id='bSink'; ifr.name='bSink'; ifr.style.display='none'; document.body.appendChild(ifr); }
+  var form=document.createElement('form');
+  form.action=BOARD_API; form.method='POST'; form.target='bSink'; form.acceptCharset='UTF-8'; form.style.display='none';
+  function add(k,v){ var i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v==null?'':String(v); form.appendChild(i); }
+  add('name', name||'匿名'); add('icon', selIcon); add('color', selColor); add('idea', idea); add('message', message);
+  document.body.appendChild(form);
+
+  var done=false;
+  function finish(){
+    if(done) return; done=true;
     show('ok','送信しました。管理者の承認後に掲示板へ公開されます。ありがとうございました。');
     document.getElementById('bName').value=''; document.getElementById('bIdea').value=''; document.getElementById('bMsg').value=''; document.getElementById('bCount').textContent='0';
-  }).catch(function(){
-    show('ok','送信しました。反映されない場合は時間をおいて再度お試しください。');
-  }).finally(function(){ btn.disabled=false; btn.textContent='送信する'; });
+    btn.disabled=false; btn.textContent='送信する';
+    setTimeout(function(){ try{form.parentNode&&form.parentNode.removeChild(form);}catch(e){} }, 1000);
+    // 送信直後に掲示板/ティッカーを更新（承認済みがあれば反映）
+    setTimeout(function(){ try{ loadPosts(); }catch(e){} }, 1500);
+  }
+  ifr.onload=function(){ finish(); };
+  setTimeout(finish, 5000); // onloadが来ない環境向けフォールバック
+  form.submit();
 }
 
 var TICKER_SPEED = 70; /* px/秒：見やすい一定速度 */
