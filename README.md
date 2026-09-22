@@ -1,0 +1,1 @@
+# teiden-idea-tool
