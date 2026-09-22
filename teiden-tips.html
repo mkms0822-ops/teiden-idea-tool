@@ -94,6 +94,19 @@ html.dk .toast{background:#2a3947}
 
 @media (max-width:480px){ ol.tips li{font-size:.93rem} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.subtitle{display:inline-block;font-weight:800;font-size:clamp(1rem,3.8vw,1.28rem);color:var(--accent);margin:0 0 12px;padding:4px 13px;background:var(--accent-soft);border-radius:9px;border:1px solid var(--line)}
+.ticker{display:flex;align-items:stretch;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:2px 0 20px;overflow:hidden;border-radius:10px}
+.tk-label{flex:none;display:flex;align-items:center;font-size:.76rem;font-weight:800;padding:0 13px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.tk-view{flex:1;min-width:0;overflow:hidden}
+.tk-track{display:inline-flex;white-space:nowrap;will-change:transform}
+.tk-set{display:inline-flex;align-items:center}
+.tk-item{display:inline-flex;align-items:center;gap:8px;padding:9px 26px;font-size:.92rem;border-right:1px solid var(--line)}
+.tk-ic{flex:none;width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:15px}
+.tk-msg{white-space:nowrap}
+.tk-name{color:var(--muted);font-size:.82rem;white-space:nowrap}
+@keyframes tkscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker:hover .tk-track{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){ .tk-track{animation:none!important} .tk-view{overflow-x:auto} }
 section.board{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:6px 4px 8px;margin:28px 0 16px;scroll-margin-top:76px}
 .board-inner{padding:6px 16px 18px}
 .board-note{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.7;margin:0 0 18px}
@@ -164,10 +177,17 @@ section.board{background:var(--surface);border:1px solid var(--line);border-radi
 <div class="wrap">
   <header>
     <h1>停電対策 知恵袋ポータル</h1>
+    <p class="subtitle">被災地応援掲示板</p>
     <p class="lede">寝る・食事・食料・情報・入浴・トイレ・スマホ・電源など、暮らしのカテゴリー別に停電時の工夫を集めました。</p>
     <p class="count">全140項目・14カテゴリー／キーワード検索できます</p>
     <p class="count">提供：DWA防災情報センター</p>
   </header>
+
+  <div class="ticker" id="ticker" style="display:none" aria-label="被災地応援メッセージ">
+    <span class="tk-label">💛 応援メッセージ</span>
+    <div class="tk-view"><div class="tk-track" id="tickerTrack"></div></div>
+  </div>
+
 
   <div class="safety" role="note">
     <p><b>安全のために必ず：</b>発電機・炭火・ガス機器を室内で使わない（<b>一酸化炭素中毒</b>の危険）。長期停電や避難時は<b>ブレーカーを落とす</b>（<b>通電火災</b>の防止）。<b>ろうそくは就寝時に使わない</b>。赤い項目は特に命に関わる注意点です。</p>
@@ -323,7 +343,7 @@ function sharePage(){
 }
 /* ===== 防災アイデア・被災地応援掲示板 ===== */
 /* ▼▼ 管理者設定：GASウェブアプリのURLを貼り付けてください ▼▼ */
-const BOARD_API = '';
+const BOARD_API = 'https://script.google.com/macros/s/AKfycbzbLXNjzuIjTAahqUyM9kcnzh2kUC-OlV_tnm4yNSwGsnckZyB9AcY2ZGXk53u4E-9I/exec';
 /* ▲▲ 例）const BOARD_API = 'https://script.google.com/macros/s/xxxxx/exec'; ▲▲ */
 
 const ICONS_M = ['👨','🧔','👨‍🦰','👨‍🦱','👨‍🦳','👨‍🦲','👴','👨‍💼','👨‍🌾','👨‍🚒'];
@@ -373,6 +393,40 @@ function submitPost(){
   }).finally(function(){ btn.disabled=false; btn.textContent='送信する'; });
 }
 
+var TICKER_SPEED = 70; /* px/秒：見やすい一定速度 */
+var _tickerPosts = [];
+function buildTicker(posts){
+  _tickerPosts = posts || [];
+  var wrap = document.getElementById('ticker');
+  var view = wrap ? wrap.querySelector('.tk-view') : null;
+  var track = document.getElementById('tickerTrack');
+  if(!wrap || !view || !track) return;
+  var msgs = _tickerPosts.filter(function(p){ return p && p.message && String(p.message).trim(); });
+  if(!msgs.length){ wrap.style.display='none'; track.style.animation='none'; track.innerHTML=''; return; }
+  wrap.style.display='';
+  var items = msgs.map(function(p){
+    var col = /^#[0-9a-fA-F]{6}$/.test(p.color||'') ? p.color : '#6b7785';
+    return '<span class="tk-item"><span class="tk-ic" style="background:'+col+'22">'+esc(p.icon||'🙂')+'</span><span class="tk-msg">'+esc(p.message)+'</span><span class="tk-name">— '+esc(p.name||'匿名')+'</span></span>';
+  }).join('');
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  track.style.animation='none';
+  track.innerHTML = '<div class="tk-set">'+items+'</div>';
+  if(reduce){ view.style.overflowX='auto'; return; }
+  requestAnimationFrame(function(){
+    var viewW = view.getBoundingClientRect().width || 0;
+    var setW = track.querySelector('.tk-set').getBoundingClientRect().width || 0;
+    var reps = 1; while(setW>0 && setW*reps < viewW && reps<30){ reps++; }
+    var unit=''; for(var k=0;k<reps;k++){ unit+=items; }
+    track.innerHTML = '<div class="tk-set">'+unit+'</div><div class="tk-set" aria-hidden="true">'+unit+'</div>';
+    requestAnimationFrame(function(){
+      var w = track.querySelector('.tk-set').getBoundingClientRect().width || setW;
+      var dur = Math.max(14, w / TICKER_SPEED);
+      track.style.animation = 'tkscroll '+dur+'s linear infinite';
+    });
+  });
+}
+var _tkRz; window.addEventListener('resize', function(){ clearTimeout(_tkRz); _tkRz=setTimeout(function(){ buildTicker(_tickerPosts); }, 300); });
+
 function loadPosts(){
   var host=document.getElementById('bPosts'), empty=document.getElementById('bEmpty');
   if(!host) return;
@@ -383,6 +437,7 @@ function loadPosts(){
     try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
     if(sc.parentNode) sc.parentNode.removeChild(sc);
     var posts=(data&&data.posts)||[];
+    buildTicker(posts);
     if(!posts.length){ host.innerHTML=''; empty.hidden=false; empty.textContent='まだ公開された投稿はありません。'; return; }
     empty.hidden=true;
     host.innerHTML=posts.map(function(p){
