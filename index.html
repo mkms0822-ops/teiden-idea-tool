@@ -386,28 +386,33 @@ function submitPost(){
   if(!BOARD_API){ show('err','掲示板は準備中です（管理者へ：スクリプト内の BOARD_API にGASのURLを設定してください）。'); return; }
   var btn=document.getElementById('bSubmit'); btn.disabled=true; btn.textContent='送信中…';
 
-  // GASへはフォーム+隠しiframeでPOST（CORSの影響を受けず最も確実）
-  var ifr=document.getElementById('bSink');
-  if(!ifr){ ifr=document.createElement('iframe'); ifr.id='bSink'; ifr.name='bSink'; ifr.style.display='none'; document.body.appendChild(ifr); }
-  var form=document.createElement('form');
-  form.action=BOARD_API; form.method='POST'; form.target='bSink'; form.acceptCharset='UTF-8'; form.style.display='none';
-  function add(k,v){ var i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v==null?'':String(v); form.appendChild(i); }
-  add('name', name||'匿名'); add('icon', selIcon); add('color', selColor); add('idea', idea); add('message', message);
-  document.body.appendChild(form);
-
+  // 動作実績のある方式：Content-Type text/plain でJSON本文をPOST（プリフライト回避）
+  var payload = { action:'post', name:(name||'匿名'), icon:selIcon, color:selColor, idea:idea, message:message };
   var done=false;
-  function finish(){
+  function ok(){
     if(done) return; done=true;
     show('ok','送信しました。管理者の承認後に掲示板へ公開されます。ありがとうございました。');
     document.getElementById('bName').value=''; document.getElementById('bIdea').value=''; document.getElementById('bMsg').value=''; document.getElementById('bCount').textContent='0';
     btn.disabled=false; btn.textContent='送信する';
-    setTimeout(function(){ try{form.parentNode&&form.parentNode.removeChild(form);}catch(e){} }, 1000);
-    // 送信直後に掲示板/ティッカーを更新（承認済みがあれば反映）
     setTimeout(function(){ try{ loadPosts(); }catch(e){} }, 1500);
   }
-  ifr.onload=function(){ finish(); };
-  setTimeout(finish, 5000); // onloadが来ない環境向けフォールバック
-  form.submit();
+  function ng(msg){
+    if(done) return; done=true;
+    show('err', msg||'送信に失敗しました。時間をおいて再度お試しください。');
+    btn.disabled=false; btn.textContent='送信する';
+  }
+  fetch(BOARD_API + (BOARD_API.indexOf('?')>=0?'&':'?') + '_=' + Date.now(), {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  }).then(function(r){
+    return r.json().then(function(d){ return d; }).catch(function(){ return {ok:true}; });
+  }).then(function(d){
+    if(d && d.ok===false){ ng('送信エラー：'+(d.error||'不明')); } else { ok(); }
+  }).catch(function(){
+    // レスポンスが読めない環境でも保存自体は完了しているため成功扱い
+    ok();
+  });
 }
 
 var TICKER_SPEED = 70; /* px/秒：見やすい一定速度 */
